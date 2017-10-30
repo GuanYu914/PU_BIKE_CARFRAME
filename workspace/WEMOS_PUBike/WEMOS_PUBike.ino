@@ -4,8 +4,8 @@
 #include <Servo.h>
 
 /*------------WIFISSID--------------*/
-#define WIFI_SSID           "PU_BIKE"
-#define WIFI_PASS           "makerbar"
+#define WIFI_SSID              "MELON"
+#define WIFI_PASS           "melon206"
 /*------------TIMELEVEL-------------*/
 /*Unit: ms*/
 #define WIFI_BLINK_TIME_LEVEL      100
@@ -24,39 +24,41 @@
 #define B_LED_PIN                   12
 /*---------------SW-----------------*/
 /*GPIO16 --> D2*/
-#define SW_Pin                     16
-/*----------MYSQL&SERIAL--------------------------------*/
+#define SW_Pin                      16
+/*----------------------MYSQL&SERI----------------------*/
 #define SERIAL_BUAD_RATE                            115200
 #define MySQL_SERVER_PORT                             7777
 #define DB_NAME                                  "PU_Bike"
 #define TABLE_NAME                                  "bike"
-#define CARFRAME_ID                              "\"A01\""
+/*SELECT CARFRAME ID ON DEFFRENT CARFRAME*/
+#define CARFRAME_ID                              "\"A02\""
 #define FETCH_ID_COL                             "BIKE_ID"
 #define FETCH_RESERVER_COL                      "reserver"
 #define FETCH_RESERVER_RENT_FLAG_COL  "RESERVER_RENT_FLAG"
 #define UPLOAD_ID_COL                            "BIKE_ID"
 #define UPLOAD_SW_ID_COL                       "SW_STATUS"
 #define UPLOAD_RESERVER_RENT_FLAG_COL "RESERVER_RENT_FLAG"
-#define SEARCH_COL_NAME  "PARKING_ID"
-/*-------------SERVO------------------------------------*/
+#define SEARCH_COL_NAME                       "PARKING_ID"
+/*-------------------------SERVO------------------------*/
 /*GPIO04 --> D4*/
-#define SERVER_MOTOR_PIN           4
-#define SERVO_MAX_PULSE_WIDTH   1700
-#define SERVO_MIN_PULSE_WIDTH    550
-#define SERVO_DELAY               10
-
-char * non_reserver_temp_status = "";
-char * reserver_temp_status     = "";
-char * current_id               = "";
-char * MySQL_db_user            = "Bike_manager";
-char * MySQL_db_pass            = "manager";
-int reserver_rent_flag          = 0;
+#define SERVER_MOTOR_PIN                                4
+#define SERVO_MAX_PULSE_WIDTH                        1700
+#define SERVO_MIN_PULSE_WIDTH                         550
+#define SERVO_DELAY                                    10
+/*-------------------------OTHER-------------------------*/
+char * non_reserver_temp_status                      = "";
+char * reserver_temp_status                          = "";
+char * current_id                                    = "";
+char * MySQL_db_user                     = "Bike_manager";
+char * MySQL_db_pass                          = "manager";
+char parse_data[2][50]                             = {""};
+int reserver_rent_flag                                = 0;
 
 WiFiClient WIFI_client;
 Servo car_frame_servo_motor;
 MySQL_Connection MySQL_connector((Client *)&WIFI_client);
-/*100.100.100.102 is MySQL host ip*/
-IPAddress MySQL_server_host_ipAdderss(100, 100, 100, 102);
+/*140.128.13.39 is MySQL host ip*/
+IPAddress MySQL_server_host_ipAdderss(140, 128, 13, 39);
 
 void setup()
 {
@@ -70,6 +72,7 @@ void setup()
         RGBLED_turnoff();
         SERVO_control("INIT");
         WIFI_connect();
+        MySQL_connect();
         Serial.println("Initialize completed.");
 }
 
@@ -79,14 +82,16 @@ void loop()
         {
                 if(MySQL_connector.connected())
                 {
-                        if(!strlen(MySQL_fetch_col_data(FETCH_RESERVER_COL)))
+                        MySQL_fetch_col_data(FETCH_RESERVER_COL, FETCH_RESERVER_RENT_FLAG_COL);
+                        /*read reserver column value*/
+                        if(!strlen(parse_data[0]))
                         {
                                 /*ENTER NON-RESERVER STATUS*/
                                 /*reserver rent bike when enter this case*/
-                                if(!strcmp(MySQL_fetch_col_data(FETCH_RESERVER_RENT_FLAG_COL), "1"))
+                                /*read reserver_rent_flag column value*/
+                                if(!strcmp(parse_data[1], "1"))
                                 {
-                                        MySQL_upload_local_data("0", UPLOAD_RESERVER_RENT_FLAG_COL);
-                                        MySQL_upload_local_data("\"\"", UPLOAD_ID_COL);
+                                        MySQL_upload_local_data("0", UPLOAD_RESERVER_RENT_FLAG_COL, "\"\"", UPLOAD_ID_COL);
                                         goto RENT;         
                                 }
                                 if(SW_readsignal())
@@ -283,10 +288,9 @@ boolean MySQL_connect(void)
                 Serial.println("Estabilish connection unsuccessfully.");
                 return false;
         }
-
 }
 
-void MySQL_upload_local_data(char* data_value, const char *COL_DATA_NAME)
+void MySQL_upload_local_data(char* data_value, const char* COL_DATA_NAME)
 {
         MySQL_Cursor *MySQL_Cursor_Mem = new MySQL_Cursor(&MySQL_connector);
         if(MySQL_connector.connected())
@@ -318,7 +322,43 @@ void MySQL_upload_local_data(char* data_value, const char *COL_DATA_NAME)
         delete MySQL_Cursor_Mem;
 }
 
-char * MySQL_fetch_col_data(const char * COL_DATA_NAME)
+void MySQL_upload_local_data(char* data_value_1, const char* COL_DATA_NAME_1, char* data_value_2, const char* COL_DATA_NAME_2)
+{
+        MySQL_Cursor *MySQL_Cursor_Mem = new MySQL_Cursor(&MySQL_connector);
+        if(MySQL_connector.connected())
+        {
+                char upload_query_string[50] = "";
+                char select_database_query_string[15] = "";
+                char temp_data_value[12];
+                /*Select MySQL DATABASE NMAE which define by DB_NAME macro name*/
+                strncpy(select_database_query_string, "USE ", strlen("USE "));
+                strncat(select_database_query_string, DB_NAME, strlen(DB_NAME));
+                MySQL_Cursor_Mem -> execute(select_database_query_string);
+                /*upload sw_value to specific column name*/
+                strncpy(upload_query_string, "UPDATE ", strlen("UPDATE "));
+                strncat(upload_query_string, TABLE_NAME, strlen(TABLE_NAME));
+                strncat(upload_query_string, " SET ", strlen(" SET "));
+                strncat(upload_query_string, COL_DATA_NAME_1, strlen(COL_DATA_NAME_1));
+                strncat(upload_query_string, " = ", strlen(" = "));
+                strncat(upload_query_string, data_value_1, strlen(data_value_1));
+                strncat(upload_query_string, ", ", strlen(", "));
+                strncat(upload_query_string, COL_DATA_NAME_2, strlen(COL_DATA_NAME_2));
+                strncat(upload_query_string, " = ", strlen(" = "));
+                strncat(upload_query_string, data_value_2, strlen(data_value_2));
+                strncat(upload_query_string, " WHERE ", strlen(" WHERE "));
+                strncat(upload_query_string, SEARCH_COL_NAME, strlen(SEARCH_COL_NAME));
+                strncat(upload_query_string, " = ", strlen(" = "));
+                strncat(upload_query_string, CARFRAME_ID, strlen(CARFRAME_ID));
+                MySQL_Cursor_Mem -> execute(upload_query_string);
+        }else
+        {
+                MySQL_connector.close();
+                MySQL_connect();
+        }
+        delete MySQL_Cursor_Mem;
+}
+
+char * MySQL_fetch_col_data(const char* COL_DATA_NAME)
 {
         MySQL_Cursor *MySQL_Cursor_Mem = new MySQL_Cursor(&MySQL_connector);
         char * row_data = "";
@@ -361,6 +401,48 @@ char * MySQL_fetch_col_data(const char * COL_DATA_NAME)
         return row_data;
 }
 
+void MySQL_fetch_col_data(const char* COL_DATA_NAME_1, const char* COL_DATA_NAME_2)
+{
+        MySQL_Cursor *MySQL_Cursor_Mem = new MySQL_Cursor(&MySQL_connector);
+        if(MySQL_connector.connected())
+        {
+                row_values * row = NULL;
+                char insert_query_string[50] = "";
+                char select_database_query_string[15] = "";
+                /*select MySQL DATABASE NMAE which define by DB_NAME macro name*/
+                strncpy(select_database_query_string, "USE ", strlen("USE "));
+                strncat(select_database_query_string, DB_NAME, strlen(DB_NAME));
+                MySQL_Cursor_Mem -> execute(select_database_query_string);
+                /*use given column name to fetch specific column value */
+                strncpy(insert_query_string, "SELECT ", strlen("SELECT "));
+                strncat(insert_query_string, COL_DATA_NAME_1, strlen(COL_DATA_NAME_1));
+                strncat(insert_query_string, ", ", strlen(", "));
+                strncat(insert_query_string, COL_DATA_NAME_2, strlen(COL_DATA_NAME_2));
+                strncat(insert_query_string, " FROM ", strlen(" FROM "));
+                strncat(insert_query_string, TABLE_NAME, strlen(TABLE_NAME));
+                strncat(insert_query_string, " WHERE ", strlen(" WHERE "));
+                strncat(insert_query_string, SEARCH_COL_NAME, strlen(SEARCH_COL_NAME));
+                strncat(insert_query_string, " = ", strlen(" = "));
+                strncat(insert_query_string, CARFRAME_ID, strlen(CARFRAME_ID));
+                MySQL_Cursor_Mem -> execute(insert_query_string);
+                MySQL_Cursor_Mem -> get_columns();
+                do
+                {
+                        row = MySQL_Cursor_Mem -> get_next_row();
+                        if (row != NULL)
+                        {
+                                strcpy(parse_data[0], row -> values[0]);
+                                strcpy(parse_data[1], row -> values[1]);
+                        }
+                }while (row != NULL);
+        }else
+        {
+                MySQL_connector.close();
+                MySQL_connect();
+        }
+        delete MySQL_Cursor_Mem;
+}
+
 void RGBLED_turnoff(void)
 {
         digitalWrite(R_LED_PIN, LOW);
@@ -368,7 +450,7 @@ void RGBLED_turnoff(void)
         digitalWrite(B_LED_PIN, LOW);
 }
 
-void RGBLED_control(char * status)
+void RGBLED_control(char* status)
 {
         if (!strcmp(status, "ERROR"))
         {
@@ -413,7 +495,7 @@ void RGBLED_control(char * status)
         }
 }
 
-void SERVO_control(char * bike_status)
+void SERVO_control(char* bike_status)
 {
         if (!strcmp(bike_status, "ERROR"))
         {
@@ -440,5 +522,5 @@ void SERVO_control(char * bike_status)
                         delay(SERVO_DELAY);
                 }
         }
-        if (!strcmp(bike_status, "WAITTING")) {}
+        if (!strcmp(bike_status, "WAITTING")) {/*Do nothing*/}
 }
