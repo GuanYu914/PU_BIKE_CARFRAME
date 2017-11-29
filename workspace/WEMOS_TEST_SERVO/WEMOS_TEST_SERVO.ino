@@ -3,10 +3,13 @@
 #include <ESP8266WiFi.h>
 #include <Servo.h>
             
+#define SERVO_MAX_PULSE_WIDTH      1380
+#define SERVO_MIN_PULSE_WIDTH       700
+#define SERVO_DELAY                  10              
+
 /*-------------SERVO----------------*/
 /*GPIO04 --> D4*/
 #define SERVER_MOTOR_PIN           4
-#define TIME_LEVEL                5
 #define SERIAL_BUAD_RATE      115200
 
 Servo car_frame_servo_motor;
@@ -21,15 +24,15 @@ void setup()
 
 void loop()
 {
-    for(int i = 550 ;i < 1700; i+=10)
+    for(int i = SERVO_MIN_PULSE_WIDTH ;i < SERVO_MAX_PULSE_WIDTH; i+=10)
     {
-        delay(TIME_LEVEL);
+        delay(SERVO_DELAY);
         car_frame_servo_motor.writeMicroseconds(i);
         Serial.println(i);
     }
-    for(int i = 1700 ;i > 550; i-=10)
+    for(int i = SERVO_MAX_PULSE_WIDTH ;i > SERVO_MIN_PULSE_WIDTH; i-=10)
     {
-        delay(TIME_LEVEL);
+        delay(SERVO_DELAY);
         car_frame_servo_motor.writeMicroseconds(i);
         Serial.println(i);
     }
