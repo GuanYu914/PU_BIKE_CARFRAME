@@ -3,9 +3,10 @@
 #include <ESP8266WiFi.h>
 #include <Servo.h>
 
+/*SELECT WIFI TO CONNECT*/
 /*------------WIFISSID--------------*/
-#define WIFI_SSID              "MELON"
-#define WIFI_PASS           "melon206"
+#define WIFI_SSID            "PU_BIKE"
+#define WIFI_PASS           "makerbar"
 /*------------TIMELEVEL-------------*/
 /*Unit: ms*/
 #define WIFI_BLINK_TIME_LEVEL      100
@@ -31,7 +32,7 @@
 #define DB_NAME                                  "PU_Bike"
 #define TABLE_NAME                                  "bike"
 /*SELECT CARFRAME ID ON DEFFRENT CARFRAME*/
-#define CARFRAME_ID                              "\"A02\""
+#define CARFRAME_ID                              "\"A01\""
 #define FETCH_ID_COL                             "BIKE_ID"
 #define FETCH_RESERVER_COL                      "reserver"
 #define FETCH_RESERVER_RENT_FLAG_COL  "RESERVER_RENT_FLAG"
@@ -42,23 +43,23 @@
 /*-------------------------SERVO------------------------*/
 /*GPIO04 --> D4*/
 #define SERVER_MOTOR_PIN                                4
+/*SELECT SERVO CONFIG TO ADJUST ROTATION ANGLE*/
 #define SERVO_MAX_PULSE_WIDTH                        1700
 #define SERVO_MIN_PULSE_WIDTH                         550
 #define SERVO_DELAY                                    10
 /*-------------------------OTHER-------------------------*/
-char * non_reserver_temp_status                      = "";
-char * reserver_temp_status                          = "";
-char * current_id                                    = "";
-char * MySQL_db_user                     = "Bike_manager";
-char * MySQL_db_pass                          = "manager";
-char parse_data[2][50]                             = {""};
-int reserver_rent_flag                                = 0;
+char* non_reserver_temp_status                      = "";
+char* reserver_temp_status                          = "";
+char* current_id                                    = "";
+char* MySQL_db_user                     = "Bike_manager";
+char* MySQL_db_pass                          = "manager";
+char  parse_data[2][50]                           = {""};
 
 WiFiClient WIFI_client;
 Servo car_frame_servo_motor;
 MySQL_Connection MySQL_connector((Client *)&WIFI_client);
-/*140.128.13.39 is MySQL host ip*/
-IPAddress MySQL_server_host_ipAdderss(140, 128, 13, 39);
+/*SELECT MYSQL HOST IP TO CONNECT*/
+IPAddress MySQL_server_host_ipAdderss(100, 100, 100, 102);
 
 void setup()
 {
@@ -364,7 +365,7 @@ char * MySQL_fetch_col_data(const char* COL_DATA_NAME)
         char * row_data = "";
         if(MySQL_connector.connected())
         {
-                row_values * row = NULL;
+                row_values* row = NULL;
                 char insert_query_string[50] = "";
                 char select_database_query_string[15] = "";
                 /*select MySQL DATABASE NMAE which define by DB_NAME macro name*/
@@ -406,7 +407,7 @@ void MySQL_fetch_col_data(const char* COL_DATA_NAME_1, const char* COL_DATA_NAME
         MySQL_Cursor *MySQL_Cursor_Mem = new MySQL_Cursor(&MySQL_connector);
         if(MySQL_connector.connected())
         {
-                row_values * row = NULL;
+                row_values* row = NULL;
                 char insert_query_string[50] = "";
                 char select_database_query_string[15] = "";
                 /*select MySQL DATABASE NMAE which define by DB_NAME macro name*/
